@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>段码屏 · 七段数码管动画</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            margin: 0;
+            min-height: 100vh;
+            background: linear-gradient(145deg, #1a1e24 0%, #2d333b 100%);
+            font-family: 'Segoe UI', Roboto, system-ui, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 16px;
+        }
+        .card {
+            background: #1e2228;
+            padding: 32px 28px 40px;
+            border-radius: 48px;
+            box-shadow: 0 25px 40px rgba(0,0,0,0.6), inset 0 0 0 1px rgba(255,255,255,0.05);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transition: all 0.2s;
+        }
+        h2 {
+            color: #d0d8e5;
+            font-weight: 400;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            font-size: 1rem;
+            margin-top: 0;
+            margin-bottom: 20px;
+            opacity: 0.7;
+            text-shadow: 0 2px 4px black;
+        }
+        /* 段码屏容器 */
+        .segment-display {
+            background: #0b0d0f;
+            padding: 20px 20px 10px 20px;
+            border-radius: 36px;
+            box-shadow: inset 0 0 10px #000000, 0 10px 20px #00000080, 0 0 0 1px #3a3f48;
+            display: inline-block;
+        }
+        /* 灯板区域 */
+        .digit-grid {
+            position: relative;
+            width: 200px;
+            height: 320px;
+            background: #14181c;
+            border-radius: 24px;
+            box-shadow: inset 0 0 20px #000, 0 0 0 1px #2d323a;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        /* 灯段通用样式 */
+        .seg {
+            position: absolute;
+            background: #242a31;
+            border-radius: 6px;
+            transition: background 0.1s ease, box-shadow 0.1s ease, filter 0.1s ease;
+            box-shadow: 0 0 2px #00000080, inset 0 1px 2px #ffffff1a;
+            /* 默认熄灭状态(暗灰色) */
+        }
+        /* 点亮状态 – 霓虹红光 + 光晕 */
+        .seg.on {
+            background: #ff3b3b;
+            box-shadow: 0 0 12px #ff5e5e, 0 0 24px #ff0000cc, 0 0 6px #ff3b3b, inset 0 0 6px #ffe0e0;
+            filter: brightness(1.2);
+        }
+        /* 小数点h段 (右下角小圆点) */
+        .seg.h {
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+        }
+
+        /* 水平段 (a, g, d) */
+        .seg.a, .seg.g, .seg.d {
+            width: 100px;
+            height: 18px;
+            left: 50px;
+            border-radius: 12px;
+        }
+        .seg.a {
+            top: 30px;
+        }
+        .seg.g {
+            top: 151px;  /* 中间水平段 */
+        }
+        .seg.d {
+            top: 272px;
+        }
+
+        /* 垂直段 (f, b, e, c) */
+        .seg.f, .seg.b, .seg.e, .seg.c {
+            width: 18px;
+            height: 100px;
+            border-radius: 12px;
+        }
+        .seg.f {
+            left: 30px;
+            top: 50px;
+        }
+        .seg.b {
+            right: 30px;
+            top: 50px;
+        }
+        .seg.e {
+            left: 30px;
+            top: 170px;
+        }
+        .seg.c {
+            right: 30px;
+            top: 170px;
+        }
+
+        /* 小数点 h 位于右下角 d 段下方右侧 */
+        .seg.h {
+            right: 26px;
+            bottom: 24px;
+            top: auto;
+            left: auto;
+        }
+
+        /* 输入区域 */
+        .input-area {
+            margin-top: 32px;
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .input-area input {
+            background: #0e1217;
+            border: 2px solid #323a45;
+            color: #f0f4fa;
+            font-size: 1.8rem;
+            font-weight: 600;
+            width: 110px;
+            text-align: center;
+            padding: 8px 6px;
+            border-radius: 20px;
+            outline: none;
+            transition: all 0.2s;
+            box-shadow: inset 0 4px 8px #00000080, 0 2px 4px #00000040;
+            letter-spacing: 2px;
+            font-family: 'Courier New', monospace;
+        }
+        .input-area input:focus {
+            border-color: #ff5e5e;
+            box-shadow: 0 0 12px #ff3b3b80, inset 0 2px 6px black;
+        }
+        .input-area button {
+            background: #2b323c;
+            border: none;
+            font-size: 1.2rem;
+            font-weight: 600;
+            padding: 0 28px;
+            border-radius: 30px;
+            color: #d4deec;
+            cursor: pointer;
+            box-shadow: 0 8px 0 #0a0c0e, 0 6px 18px black;
+            transition: all 0.1s ease;
+            letter-spacing: 0.5px;
+            border: 1px solid #4b5666;
+            text-transform: uppercase;
+        }
+        .input-area button:active {
+            transform: translateY(6px);
+            box-shadow: 0 2px 0 #0a0c0e, 0 8px 18px black;
+        }
+        .input-area button:hover {
+            background: #3c4552;
+            color: white;
+        }
+        /* 提示 */
+        .hint {
+            color: #8f9bae;
+            font-size: 0.85rem;
+            margin-top: 16px;
+            letter-spacing: 0.5px;
+            opacity: 0.8;
+        }
+        /* 当前数字标记 */
+        .badge {
+            display: inline-block;
+            background: #242b33;
+            padding: 4px 14px;
+            border-radius: 40px;
+            color: #bdc9db;
+            font-weight: 500;
+            margin-left: 8px;
+            font-size: 0.9rem;
+            border: 1px solid #3e4855;
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h2>🔴 段码屏 · 七段显示</h2>
+        <!-- 段码屏 -->
+        <div class="segment-display">
+            <div class="digit-grid" id="digitGrid">
+                <!-- a 段 (上) -->
+                <div class="seg a" id="seg-a" data-seg="a"></div>
+                <!-- b 段 (右上) -->
+                <div class="seg b" id="seg-b" data-seg="b"></div>
+                <!-- c 段 (右下) -->
+                <div class="seg c" id="seg-c" data-seg="c"></div>
+                <!-- d 段 (下) -->
+                <div class="seg d" id="seg-d" data-seg="d"></div>
+                <!-- e 段 (左下) -->
+                <div class="seg e" id="seg-e" data-seg="e"></div>
+                <!-- f 段 (左上) -->
+                <div class="seg f" id="seg-f" data-seg="f"></div>
+                <!-- g 段 (中) -->
+                <div class="seg g" id="seg-g" data-seg="g"></div>
+                <!-- h 段 (小数点) -->
+                <div class="seg h" id="seg-h" data-seg="h"></div>
+            </div>
+        </div>
+
+        <!-- 输入控件 -->
+        <div class="input-area">
+            <input type="text" id="numberInput" maxlength="1" placeholder="0-9" value="8" inputmode="numeric">
+            <button id="showBtn">显示</button>
+        </div>
+        <div class="hint">
+            ⚡ 输入数字 0~9 ，点击“显示”或按回车 <span class="badge" id="currentNumLabel">8</span>
+        </div>
+    </div>
+
+    <script>
+        (function() {
+            // ---------- 七段编码映射 (a,b,c,d,e,f,g) ----------
+            // 注意: 共阴数码管，1表示点亮；h为小数点单独处理，这里只映射0-9的七段。
+            // 标准七段: a(上), b(右上), c(右下), d(下), e(左下), f(左上), g(中)
+            const SEG_MAP = {
+                '0': ['a','b','c','d','e','f'],      // 0: 点亮 a,b,c,d,e,f   g灭
+                '1': ['b','c'],                      // 1: b,c
+                '2': ['a','b','g','e','d'],          // 2: a,b,g,e,d
+                '3': ['a','b','c','d','g'],          // 3: a,b,c,d,g
+                '4': ['f','g','b','c'],              // 4: f,g,b,c
+                '5': ['a','f','g','c','d'],          // 5: a,f,g,c,d
+                '6': ['a','f','g','e','c','d'],      // 6: a,f,g,e,c,d (注意c,d点亮) 实际6: a,f,g,e,d,c ; 这里c和d都亮
+                '7': ['a','b','c'],                  // 7: a,b,c
+                '8': ['a','b','c','d','e','f','g'],  // 8: 全部七段
+                '9': ['a','b','c','d','f','g']       // 9: a,b,c,d,f,g  (e灭)
+            };
+
+            // 小数点h不参与数字显示，h段永远不亮(如果需要小数可额外设置)，但题目说h为小数点，
+            // 且没有要求小数点逻辑，所以h灯保持熄灭(但保留显示能力)
+            // 我们保持h一直关闭 —— 符合大多数情况。若需要可以点亮，但不需要。
+
+            // 获取所有段元素
+            const segElements = {
+                a: document.getElementById('seg-a'),
+                b: document.getElementById('seg-b'),
+                c: document.getElementById('seg-c'),
+                d: document.getElementById('seg-d'),
+                e: document.getElementById('seg-e'),
+                f: document.getElementById('seg-f'),
+                g: document.getElementById('seg-g'),
+                h: document.getElementById('seg-h')
+            };
+
+            // 所有段名称列表
+            const allSegs = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
+
+            // 当前显示的数字 (用于界面标签)
+            const currentNumLabel = document.getElementById('currentNumLabel');
+            const numberInput = document.getElementById('numberInput');
+            const showBtn = document.getElementById('showBtn');
+
+            // 保存当前动画帧(用于清除之前的动画)
+            let animationFrame = null;
+
+            // ---------- 清除所有动画 ----------
+            function cancelPendingAnimation() {
+                if (animationFrame) {
+                    cancelAnimationFrame(animationFrame);
+                    animationFrame = null;
+                }
+            }
+
+            // ---------- 立即熄灭所有段 (同步，无动画) ----------
+            function allSegsOff() {
+                allSegs.forEach(seg => {
+                    const el = segElements[seg];
+                    if (el) el.classList.remove('on');
+                });
+            }
+
+            // ---------- 立即点亮指定段 (同步) ----------
+            function setSegsOn(segments) {
+                segments.forEach(seg => {
+                    if (segElements[seg]) segElements[seg].classList.add('on');
+                });
+            }
+
+            // ---------- 根据数字获取需要点亮的段 (返回数组) ----------
+            function getSegmentsForDigit(digitChar) {
+                if (digitChar && SEG_MAP[digitChar]) {
+                    return SEG_MAP[digitChar];
+                }
+                // 默认返回空数组 (全灭)
+                return [];
+            }
+
+            // ---------- 动画显示数字: 逐个点亮段 ----------
+            function animateDigit(digitChar, interval = 50) {
+                // 取消之前的动画
+                cancelPendingAnimation();
+
+                // 先全部熄灭 (同步)
+                allSegsOff();
+
+                // 获取目标段列表
+                const targetSegs = getSegmentsForDigit(digitChar);
+                
+                // 如果没有目标段(比如非0-9)，就保持全灭
+                if (targetSegs.length === 0) {
+                    currentNumLabel.textContent = digitChar || '?';
+                    return;
+                }
+
+                // 逐个点亮 (使用setTimeout队列，实现依次点亮，制造动画感)
+                let index = 0;
+                const total = targetSegs.length;
+
+                function lightNext() {
+                    if (index < total) {
+                        const segName = targetSegs[index];
+                        if (segElements[segName]) {
+                            segElements[segName].classList.add('on');
+                        }
+                        index++;
+                        // 继续点亮下一个 (使用requestAnimationFrame实现平滑动画)
+                        // 但为了能看到逐步点亮，配合setTimeout达到更明显的“段码屏扫描”感
+                        // 使用requestAnimationFrame + setTimeout 混合
+                        // 这里用setTimeout保证可见的动画间隔
+                        animationFrame = window.setTimeout(() => {
+                            lightNext();
+                        }, interval);
+                    } else {
+                        // 所有段点亮完成，确保没有遗漏（再次确认）
+                        // 同时取消animationFrame标记
+                        animationFrame = null;
+                        // 更新标签
+                        currentNumLabel.textContent = digitChar;
+                    }
+                    // 更新标签为中间状态（可以显示当前数字，但为了体验，在最后更新）
+                    if (index === total) {
+                        currentNumLabel.textContent = digitChar;
+                    }
+                }
+
+                // 设置当前数字标签（可提前显示数字，但也可以最后）
+                // 这里让它显示输入的数字，但动画完成后不变
+                // 启动动画
+                lightNext();
+
+                // 注意: 上面lightNext里会更新currentNumLabel最后一步
+                // 但以防没有目标段的情况已经处理了
+                if (total > 0) {
+                    // 立即把标签设置为正在显示的数字(但动画中也可以)
+                    // 为了不给用户错误感觉，动画结束后再设置? 但也不影响
+                    // 在lightNext最后已经设置了
+                } else {
+                    currentNumLabel.textContent = digitChar;
+                }
+            }
+
+            // ---------- 直接显示(无动画)保留用于备选，不过现在只用动画 ----------
+            function displayDigitInstant(digitChar) {
+                cancelPendingAnimation();
+                allSegsOff();
+                const segs = getSegmentsForDigit(digitChar);
+                setSegsOn(segs);
+                currentNumLabel.textContent = digitChar;
+            }
+
+            // ---------- 处理输入并动画显示 ----------
+            function handleShow() {
+                let raw = numberInput.value.trim();
+                // 如果输入为空，取默认或者显示全灭
+                if (raw === '') {
+                    // 无输入：全灭，标签显示'-'
+                    cancelPendingAnimation();
+                    allSegsOff();
+                    currentNumLabel.textContent = '—';
+                    return;
+                }
+                // 只取第一个字符
+                const firstChar = raw.charAt(0);
+                // 检查是否是0-9
+                if (/^[0-9]$/.test(firstChar)) {
+                    // 数字0-9，执行动画显示
+                    animateDigit(firstChar, 60); // 每段间隔60ms，感觉像扫描
+                } else {
+                    // 非数字：全灭，并提示
+                    cancelPendingAnimation();
+                    allSegsOff();
+                    currentNumLabel.textContent = firstChar + '?';
+                    // 也可以闪烁提示，但简单起见
+                }
+            }
+
+            // ---------- 初始化: 显示数字8 ----------
+            function init() {
+                // 设置输入框的值
+                numberInput.value = '8';
+                // 立刻显示数字8（直接点亮，不需要动画？但为了页面加载即显示，用无动画初始化）
+                // 但为了保留动画特性，让首次显示也有小动画？但会感觉慢，可以不用动画，先立即显示8
+                // 但为了展示动画效果，可以先全灭再动画? 但载入时最好直接显示。平衡下，我们载入时直接显示8
+                // 为了演示动画，我们可以载入后延迟一点点动画? 但不需要，用户点击按钮才动画。
+                // 这里直接显示8，无动画。
+                cancelPendingAnimation();
+                allSegsOff();
+                const segs8 = getSegmentsForDigit('8');
+                setSegsOn(segs8);
+                currentNumLabel.textContent = '8';
+            }
+
+            // 绑定事件
+            showBtn.addEventListener('click', handleShow);
+
+            // 按回车触发
+            numberInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleShow();
+                }
+            });
+
+            // 输入限制: 只允许数字，但保留退格等; 为了体验，输入时过滤非数字(但允许清空)
+            numberInput.addEventListener('input', (e) => {
+                let val = e.target.value;
+                // 过滤非数字字符
+                val = val.replace(/[^0-9]/g, '');
+                // 如果长度>1, 只取第一个字符
+                if (val.length > 1) {
+                    val = val.slice(0, 1);
+                }
+                e.target.value = val;
+                // 可选: 实时自动显示(如果希望输入即显示，可以取消注释下面)
+                // 但题目要求点击按钮或回车，也可以自动? 但为了符合交互，保留点击按钮为主。
+                // 如果想更流畅: 如果输入的是0-9，自动动画显示（可选）。为了更好的演示效果，我们可以启用实时，
+                // 但有些用户可能想输入完再点，所以保留按钮也同时支持实时? 这样可能会冲突。
+                // 我们按照题目要求“输入0~9中的一个数字之后，段码屏上可以显示出对应的数字”和“点击显示”，
+                // 那自动显示也可以让体验更好。但为了明确交互，保留按钮。
+                // 不过可以增加自动显示: 如果输入的是单个数字，就自动显示（但防止动画重叠）
+                // 我们保留按钮和回车，但也可以监听input进行自动动画（更好）。
+                // 下面启用自动实时显示（如果用户希望输入后直接变化），同时保留按钮。
+                // 但注意: 如果用户输入0-9，立刻动画显示。
+                // 但如果用户是在清空输入，则全灭
+                if (val.length === 1 && /^[0-9]$/.test(val)) {
+                    // 自动动画显示 (与按钮效果一致)
+                    // 但为了不使动画过于频繁，可以加个小延迟，但取消之前的动画即可。
+                    animateDigit(val, 40); // 间隔短一点，响应更快
+                } else if (val.length === 0) {
+                    // 清空输入 -> 全灭
+                    cancelPendingAnimation();
+                    allSegsOff();
+                    currentNumLabel.textContent = '—';
+                }
+            });
+
+            // 点击输入框全选，方便替换
+            numberInput.addEventListener('focus', (e) => e.target.select());
+
+            // 启动初始化
+            init();
+
+            // 额外: 如果失去焦点，也可以保留当前显示
+
+            // 确保h段不亮(我们不会主动点亮h，它默认关闭，但如果有其他操作点亮h，要清除)
+            // 在allSegsOff中已经移除h的on类，所以没问题。
+        })();
+    </script>
+</body>
+</html>
